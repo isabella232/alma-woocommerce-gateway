@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<ruleset name="My first PHPMD rule set"
+         xmlns="http://pmd.sf.net/ruleset/1.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sf.net/ruleset/1.0.0
+                     http://pmd.sf.net/ruleset_xml_schema.xsd"
+         xsi:noNamespaceSchemaLocation="
+                     http://pmd.sf.net/ruleset_xml_schema.xsd">
+    <description>
+        A custom set of Mess Detector rules to check for Alma WooCommerce plugin project
+    </description>
+
+    <!-- <rule ref="rulesets/controversial.xml" /> -->
+    <rule ref="rulesets/codesize.xml" />
+    <rule ref="rulesets/unusedcode.xml" />
+
+    <!-- CLEANCODE -->
+    <rule ref="rulesets/cleancode.xml">
+        <exclude name="StaticAccess" />
+        <exclude name="MissingImport" />
+    </rule>
+
+    <!-- DESGIN -->
+    <rule ref="rulesets/design.xml">
+        <exclude name="StaticAccess" />
+        <exclude name="ExitExpression" />
+    </rule>
+    <rule ref="rulesets/design.xml/DevelopmentCodeFragment">
+        <properties>
+            <property name="unwanted-functions" value="var_dump,print_r,debug_zval_dump,debug_print_backtrace,dump" />
+        </properties>
+    </rule>
+
+    <!--UNAMING -->
+    <rule ref="rulesets/naming.xml">
+        <exclude name="LongVariable" />
+    </rule>
+    <rule ref="rulesets/naming.xml/LongVariable">
+        <properties>
+            <property name="maximum" description="The variable length reporting threshold" value="30" />
+        </properties>
+    </rule>
+
+    <!-- EXCLUDED PATH -->
+    <exclude-pattern>vendor/</exclude-pattern>
+</ruleset>
