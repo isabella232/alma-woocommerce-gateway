@@ -423,6 +423,7 @@ class Alma_WC_Plugin {
 	private function run() {
 
 		add_filter( 'woocommerce_payment_gateways', array( $this, 'add_payment_gateway' ) );
+		add_action( 'woocommerce_after_template_part', array( $this, 'add_pay_later_payment_method' ), 10, 4 );
 
 		if ( ! $this->settings->is_enabled() ) {
 			return;
@@ -505,6 +506,35 @@ class Alma_WC_Plugin {
 		$gateways[] = 'Alma_WC_Payment_Gateway';
 
 		return $gateways;
+	}
+
+	/**
+	 * Add HTML form for pay later.
+	 *
+	 * @param string $template_name The template name.
+	 * @param string $template_path The template path.
+	 * @param string $located The located template file.
+	 * @param array  $args Filter arguments.
+	 */
+	public function add_pay_later_payment_method( $template_name, $template_path, $located, $args ) {
+		if ( isset( $args['gateway'] ) && 'alma' === $args['gateway']->id ) {
+			$gateway = $args['gateway'];
+			?>
+			<li class="wc_payment_method payment_method_alma_pay_later">
+				<input id="payment_method_alma_pay_later" type="radio" class="input-radio" name="payment_method" value="<?php echo esc_attr( $gateway->id ); ?>" data-order_button_text="Buy now, pay later<?php // echo esc_attr( $gateway->order_button_text );. ?>" />
+
+				<label for="payment_method_alma_pay_later">
+					<?php echo esc_attr( $gateway->get_title() ); ?> <?php echo esc_attr( $gateway->get_icon() ); ?>
+				</label>
+				<?php if ( $gateway->has_fields() || $gateway->get_description() ) : ?>
+					<div class="payment_box payment_method_alma_pay_later">
+						<!-- TODO: use different payment_fields for pay later & pnx + allow gateway to check if pnx nor pay later is activated. -->
+						<?php $gateway->payment_fields(); ?>
+					</div>
+				<?php endif; ?>
+			</li>
+			<?php
+		}
 	}
 
 	/**

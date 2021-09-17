@@ -229,6 +229,8 @@ class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 
 	/**
 	 * Custom payment fields.
+	 *
+	 * @TODO: use different payment_fields for pay later & pnx + allow gateway to check if pnx nor pay later is activated.
 	 */
 	public function payment_fields() {
 		echo wp_kses_post( $this->description );
