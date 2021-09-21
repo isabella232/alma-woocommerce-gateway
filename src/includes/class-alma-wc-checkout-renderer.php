@@ -194,6 +194,21 @@ class Alma_WC_Checkout_Renderer {
 	}
 
 	/**
+	 * Surround default available gateways array and add another payment method in checkout.
+	 *
+	 * @param array $available_gateways Alerady existing gateways.
+	 *
+	 * @return array
+	 *
+	 * @TODO add new pay_later gateway here and extract all front pay later fields & validation into new gateway (without admin part)
+	 */
+	public function set_pay_later_available( $available_gateways ) {
+		$alma_gw                                       = $available_gateways[ Alma_WC_Payment_Gateway::GATEWAY_ID ];
+		$available_gateways[ self::PAYMENT_METHOD_ID ] = $alma_gw;
+		return $available_gateways;
+	}
+
+	/**
 	 * Generate plan table DOM unique ID from given plan.
 	 *
 	 * @param Eligibility $plan Plan to check for build.

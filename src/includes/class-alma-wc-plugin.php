@@ -439,6 +439,8 @@ class Alma_WC_Plugin {
 	private function run() {
 
 		add_filter( 'woocommerce_payment_gateways', array( $this, 'add_payment_gateway' ) );
+		// @TODO add new pay_later gateway here and extract all front pay later fields & validation into new gateway (without admin part)
+		add_filter( 'woocommerce_available_payment_gateways', array( $this->checkout, 'set_pay_later_available' ) );
 		add_action( 'woocommerce_after_template_part', array( $this->checkout, 'add_pay_later_payment_method' ), 10, 4 );
 
 		if ( ! $this->settings->is_enabled() ) {
