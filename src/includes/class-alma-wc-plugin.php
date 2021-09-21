@@ -7,6 +7,7 @@
  */
 
 use Alma\API\Client;
+use Alma\API\Endpoints\Results\Eligibility;
 use Alma\API\Entities\FeePlan;
 use Alma\API\Entities\Merchant;
 use Alma\API\RequestError;
@@ -55,6 +56,20 @@ class Alma_WC_Plugin {
 	private $alma_merchant;
 
 	/**
+	 * The HTML checkout content producer.
+	 *
+	 * @var Alma_WC_Checkout_Renderer
+	 */
+	private $checkout;
+
+	/**
+	 * Eligibilities from Alma.
+	 *
+	 * @var Eligibility[]
+	 */
+	private $eligibilities;
+
+	/**
 	 * __construct
 	 *
 	 * @return void
@@ -62,6 +77,7 @@ class Alma_WC_Plugin {
 	public function __construct() {
 		$this->logger = new Alma_WC_Logger();
 		$this->self_update();
+		$this->checkout = new Alma_WC_Checkout_Renderer();
 	}
 
 	/**
@@ -423,7 +439,7 @@ class Alma_WC_Plugin {
 	private function run() {
 
 		add_filter( 'woocommerce_payment_gateways', array( $this, 'add_payment_gateway' ) );
-		add_action( 'woocommerce_after_template_part', array( $this, 'add_pay_later_payment_method' ), 10, 4 );
+		add_action( 'woocommerce_after_template_part', array( $this->checkout, 'add_pay_later_payment_method' ), 10, 4 );
 
 		if ( ! $this->settings->is_enabled() ) {
 			return;
@@ -506,35 +522,6 @@ class Alma_WC_Plugin {
 		$gateways[] = 'Alma_WC_Payment_Gateway';
 
 		return $gateways;
-	}
-
-	/**
-	 * Add HTML form for pay later.
-	 *
-	 * @param string $template_name The template name.
-	 * @param string $template_path The template path.
-	 * @param string $located The located template file.
-	 * @param array  $args Filter arguments.
-	 */
-	public function add_pay_later_payment_method( $template_name, $template_path, $located, $args ) {
-		if ( isset( $args['gateway'] ) && 'alma' === $args['gateway']->id ) {
-			$gateway = $args['gateway'];
-			?>
-			<li class="wc_payment_method payment_method_alma_pay_later">
-				<input id="payment_method_alma_pay_later" type="radio" class="input-radio" name="payment_method" value="<?php echo esc_attr( $gateway->id ); ?>" data-order_button_text="Buy now, pay later<?php // echo esc_attr( $gateway->order_button_text );. ?>" />
-
-				<label for="payment_method_alma_pay_later">
-					<?php echo esc_attr( $gateway->get_title() ); ?> <?php echo esc_attr( $gateway->get_icon() ); ?>
-				</label>
-				<?php if ( $gateway->has_fields() || $gateway->get_description() ) : ?>
-					<div class="payment_box payment_method_alma_pay_later">
-						<!-- TODO: use different payment_fields for pay later & pnx + allow gateway to check if pnx nor pay later is activated. -->
-						<?php $gateway->payment_fields(); ?>
-					</div>
-				<?php endif; ?>
-			</li>
-			<?php
-		}
 	}
 
 	/**
@@ -756,7 +743,7 @@ class Alma_WC_Plugin {
 	/**
 	 * Get eligible plans keys for current cart.
 	 *
-	 * @return array<array>
+	 * @return array<string>
 	 */
 	public function get_eligible_plans_keys_for_cart() {
 		return $this->settings->get_eligible_plans_keys( ( new Alma_WC_Model_Cart() )->get_total() );
@@ -770,4 +757,78 @@ class Alma_WC_Plugin {
 	public function is_cart_eligible() {
 		return count( $this->get_eligible_plans_keys_for_cart() ) > 0;
 	}
+
+	/**
+	 * Get eligibilities from cart.
+	 *
+	 * @return array<string,Eligibility>|null
+	 */
+	public function get_cart_eligibilities() {
+		if ( ! $this->eligibilities ) {
+			$alma = alma_wc_plugin()->get_alma_client();
+			if ( ! $alma ) {
+				return null;
+			}
+
+			try {
+				$this->eligibilities = $alma->payments->eligibility( Alma_WC_Model_Payment::get_eligibility_payload_from_cart() );
+			} catch ( RequestError $error ) {
+				$this->logger->log_stack_trace( 'Error while checking payment eligibility: ', $error );
+				return null;
+			}
+		}
+
+		return $this->eligibilities;
+	}
+
+	/**
+	 * Search eligible plan matching cart by key.
+	 *
+	 * @param string $plan_key The plan key to search.
+	 *
+	 * @return Eligibility|null
+	 */
+	public function get_cart_eligibility_by( $plan_key ) {
+		foreach ( $this->get_cart_eligibilities() as $key => $plan ) {
+			if ( $key === $plan_key ) {
+
+				return $plan;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Check if there are eligible pay later plan in with cart amount.
+	 *
+	 * @return bool
+	 */
+	public function has_eligible_pay_later_in_cart() {
+		foreach ( $this->get_cart_eligibilities() as $plan ) {
+			if ( $plan->isPayLaterOnly() ) {
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check if there are eligible pnx plan in with cart amount.
+	 *
+	 * @return bool
+	 */
+	public function has_eligible_pnx_in_cart() {
+		foreach ( $this->get_cart_eligibilities() as $plan ) {
+			if ( $plan->isPnXOnly() ) {
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 }

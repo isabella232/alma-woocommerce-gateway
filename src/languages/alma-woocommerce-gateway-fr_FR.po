@@ -132,26 +132,26 @@ msgid "→ General configuration"
 msgstr "→ Configuration générale"
 
 #: includes/class-alma-wc-admin-form.php:237
-msgid "Title"
-msgstr "Titre"
+msgid "Multiple monthly payment title"
+msgstr "Titre pour le paiement en plusieurs fois"
 
 #: includes/class-alma-wc-admin-form.php:239
 msgid ""
-"This controls the payment method name which the user sees during checkout."
+"This controls the multiple monthly payment method name which the user sees during checkout."
 msgstr ""
-"Choisissez le nom de la méthode de paiement que l'utilisateur voit pendant "
+"Choisissez le nom de la méthode de paiement en plusieurs fois que l'utilisateur voit pendant "
 "la validation de commande."
 
 #: includes/class-alma-wc-admin-form.php:244
-msgid "Description"
-msgstr "Description"
+msgid "Multiple monthly payment description"
+msgstr "Description pour le paiement en plusieurs fois"
 
 #: includes/class-alma-wc-admin-form.php:247
 msgid ""
-"This controls the payment method description which the user sees during "
+"This controls the multiple monthly payment method description which the user sees during "
 "checkout."
 msgstr ""
-"Choisissez la description de la méthode de paiement sur la page de "
+"Choisissez la description de la méthode de paiement en plusieurs fois sur la page de "
 "validation de commande."
 
 #: includes/class-alma-wc-admin-form.php:251
@@ -466,8 +466,8 @@ msgid "Pay in multiple monthly payments with your credit card."
 msgstr "Payez en plusieurs fois avec votre carte bancaire."
 
 #: includes/class-alma-wc-settings.php:69
-msgid "Some products cannot be paid with monthly installments"
-msgstr "Certains produits ne sont pas payables en plusieurs fois"
+msgid "Some products cannot be paid with monthly installments or deferred payments"
+msgstr "Certains produits ne sont pas payables en plusieurs fois ou en paiement différé"
 
 #. translators: %s: #product_id (if any)
 #: includes/class-alma-wc-shortcodes.php:135

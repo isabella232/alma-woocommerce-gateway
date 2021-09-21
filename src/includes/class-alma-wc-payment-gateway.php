@@ -6,7 +6,6 @@
  * @noinspection HtmlUnknownTarget
  */
 
-use Alma\API\Endpoints\Results\Eligibility;
 use Alma\API\RequestError;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -23,10 +22,8 @@ if ( ! class_exists( 'WC_Payment_Gateway' ) ) {
 class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 	const GATEWAY_ID = 'alma';
 
-	const ALMA_PAYMENT_PLAN_TABLE_ID_TEMPLATE = 'alma-payment-plan-table-%s-installments';
-	const ALMA_PAYMENT_PLAN_TABLE_CSS_CLASS   = 'js-alma-payment-plan-table';
-	const AMOUNT_PLAN_KEY_REGEX               = '#^(min|max)_amount_general_[0-9]+_[0-9]+_[0-9]+$#';
-	const ENABLED_PLAN_KEY_REGEX              = '#^enabled_general_([0-9]+_[0-9]+_[0-9]+)$#';
+	const AMOUNT_PLAN_KEY_REGEX  = '#^(min|max)_amount_general_[0-9]+_[0-9]+_[0-9]+$#';
+	const ENABLED_PLAN_KEY_REGEX = '#^enabled_general_([0-9]+_[0-9]+_[0-9]+)$#';
 
 	/**
 	 * Logger
@@ -36,11 +33,11 @@ class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 	private $logger;
 
 	/**
-	 * Eligibilities
+	 * The HTML checkout content producer.
 	 *
-	 * @var array<int,Eligibility>|null
+	 * @var Alma_WC_Checkout_Renderer
 	 */
-	private $eligibilities;
+	private $checkout;
 
 	/**
 	 * __construct
@@ -51,7 +48,8 @@ class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 		$this->method_title       = __( 'Alma monthly payments', 'alma-woocommerce-gateway' );
 		$this->method_description = __( 'Easily provide monthly payments to your customers, risk-free!', 'alma-woocommerce-gateway' );
 
-		$this->logger = new Alma_WC_Logger();
+		$this->logger   = new Alma_WC_Logger();
+		$this->checkout = new Alma_WC_Checkout_Renderer();
 
 		$this->init_form_fields();
 		$this->init_settings();
@@ -122,7 +120,7 @@ class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 	 */
 	public function get_icon() {
 		$icon_url = alma_wc_plugin()->get_asset_url( 'images/alma_logo.svg' );
-		$icon     = '<img src="' . WC_HTTPS::force_https_url( $icon_url ) . '" alt="' . esc_attr( $this->get_title() ) . '" style="width: auto !important; height: 25px !important; border: none !important;">';
+		$icon     = '<img src="' . $icon_url . '" alt="' . esc_attr( $this->get_title() ) . '" style="width: auto !important; height: 25px !important; border: none !important;">';
 
 		return apply_filters( 'alma_wc_gateway_icon', $icon, $this->id );
 	}
@@ -187,74 +185,73 @@ class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Output HTML for a single payment field.
+	 * Custom payment fields for pnx only.
 	 *
-	 * @param string  $plan_key            Plan key.
-	 * @param boolean $has_radio_button    Include a radio button for plan selection.
-	 * @param boolean $is_checked          Should the radio button be checked.
-	 */
-	private function payment_field( $plan_key, $has_radio_button, $is_checked ) {
-		$plan_class = '.' . self::ALMA_PAYMENT_PLAN_TABLE_CSS_CLASS;
-		$plan_id    = '#' . sprintf( self::ALMA_PAYMENT_PLAN_TABLE_ID_TEMPLATE, $plan_key );
-		$logo_url   = alma_wc_plugin()->get_asset_url( "images/${plan_key}_logo.svg" );
-		?>
-		<input
-				type="<?php echo $has_radio_button ? 'radio' : 'hidden'; ?>"
-				value="<?php echo esc_attr( $plan_key ); ?>"
-				id="alma_fee_plan_<?php echo esc_attr( $plan_key ); ?>"
-				name="alma_fee_plan"
-
-				<?php if ( $has_radio_button ) : ?>
-					style="margin-right: 5px;"
-					<?php echo $is_checked ? 'checked' : ''; ?>
-					onchange="if (this.checked) { jQuery( '<?php echo esc_js( $plan_class ); ?>' ).hide(); jQuery( '<?php echo esc_js( $plan_id ); ?>' ).show() }"
-				<?php endif; ?>
-		>
-		<label
-				class="checkbox"
-				style="margin-right: 10px; display: inline;"
-				for="alma_fee_plan_<?php echo esc_attr( $plan_key ); ?>"
-		>
-			<img src="<?php echo esc_attr( $logo_url ); ?>"
-				style="float: unset !important; width: auto !important; height: 30px !important;  border: none !important; vertical-align: middle; display: inline-block;"
-				alt="
-					<?php
-					// translators: %d: number of installments.
-					echo sprintf( esc_html__( '%d installments', 'alma-woocommerce-gateway' ), esc_html( $plan_key ) );
-					?>
-					">
-		</label>
-		<?php
-	}
-
-	/**
-	 * Custom payment fields.
-	 *
-	 * @TODO: use different payment_fields for pay later & pnx + allow gateway to check if pnx nor pay later is activated.
+	 * @see woocommerce/templates/checkout/payment.php where this method is called
 	 */
 	public function payment_fields() {
 		echo wp_kses_post( $this->description );
 
-		$eligible_plans    = alma_wc_plugin()->get_eligible_plans_keys_for_cart();
-		$default_plan      = self::get_default_plan( $eligible_plans );
-		$is_multiple_plans = count( $eligible_plans ) > 1;
+		$eligible_plans = alma_wc_plugin()->get_eligible_plans_keys_for_cart();
+		$default_plan   = Alma_WC_Settings::get_default_plan( $eligible_plans );
+		$this->checkout->render_payment_fields( array_filter( $eligible_plans, array( $this, 'filter_pnx' ) ), __( 'How many installments do you want to pay?', 'alma-woocommerce-gateway' ), $default_plan );
+	}
 
-		if ( $is_multiple_plans ) {
-			?>
-			<p><?php echo esc_html__( 'How many installments do you want to pay?', 'alma-woocommerce-gateway' ); ?><span class="required">*</span></p>
-			<?php
-		}
-		?>
-		<p>
-			<?php
-			foreach ( $eligible_plans as $plan ) {
-				$this->payment_field( $plan, $is_multiple_plans, $plan === $default_plan );
+	/**
+	 * Custom payment fields for pay later only.
+	 *
+	 * @see Alma_WC_Checkout_Renderer::add_pay_later_payment_method() for pay later fields
+	 */
+	public function render_pay_later_fields() {
+		echo wp_kses_post( $this->get_option( 'pay_later_description' ) );
+
+		$eligible_plans = alma_wc_plugin()->get_eligible_plans_keys_for_cart();
+		$default_plan   = Alma_WC_Settings::get_default_plan( $eligible_plans );
+		$this->checkout->render_payment_fields( array_filter( $eligible_plans, array( $this, 'filter_pay_later' ) ), __( 'When do you want to pay?', 'alma-woocommerce-gateway' ), $default_plan );
+	}
+
+	/**
+	 * Filter enabled pnx plan key
+	 *
+	 * @param string $plan_key The plan key.
+	 *
+	 * @return bool
+	 */
+	private function filter_pnx( $plan_key ) {
+		foreach ( $this->settings as $key => $value ) {
+			if ( "enabled_$plan_key" === $key && 'yes' === $value ) {
+				$plan = alma_wc_plugin()->get_cart_eligibility_by( $plan_key );
+				if ( ! $plan ) {
+					return false;
+				}
+
+				return $plan->isPnXOnly();
 			}
+		}
 
-			$this->render_payment_plan( $default_plan );
-			?>
-		</p>
-		<?php
+		return false;
+	}
+
+	/**
+	 * Filter enabled pay later plan key
+	 *
+	 * @param string $plan_key The plan key.
+	 *
+	 * @return bool
+	 */
+	private function filter_pay_later( $plan_key ) {
+		foreach ( $this->settings as $key => $value ) {
+			if ( "enabled_$plan_key" === $key && 'yes' === $value ) {
+				$plan = alma_wc_plugin()->get_cart_eligibility_by( $plan_key );
+				if ( ! $plan ) {
+					return false;
+				}
+
+				return $plan->isPayLaterOnly();
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -263,16 +260,46 @@ class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function validate_fields() {
-		if ( empty( $_POST['alma_fee_plan'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			wc_add_notice( '<strong>Installments count</strong> is required.', 'error' );
-			return false;
+		$chosen_fee_plan = null;
+		try {
+			$chosen_fee_plan = $this->get_chosen_fee_plan();
+		} catch ( Exception $e ) {
+			wc_add_notice( $e->getMessage(), 'error' );
 		}
 		$allowed_values = array_map( 'strval', alma_wc_plugin()->get_eligible_plans_keys_for_cart() );
-		if ( ! in_array( $_POST['alma_fee_plan'], $allowed_values, true ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			wc_add_notice( '<strong>Installments count</strong> is invalid.', 'error' );
+		if ( ! in_array( $chosen_fee_plan, $allowed_values, true ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			wc_add_notice( '<strong>Chosen payment method</strong> is invalid.', 'error' );
 			return false;
 		}
 		return true;
+	}
+
+	/**
+	 * Retrieve chosen payment fee plan from checkout _POST data.
+	 *
+	 * @return string
+	 *
+	 * @throws Exception If POST does not contain sufficient data.
+	 */
+	private function get_chosen_fee_plan() {
+		if ( ! isset( $_POST['payment_method'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			throw new Exception( 'Payment method <strong>not found</strong>.' );
+		}
+		$payment_method = $_POST['payment_method']; // phpcs:ignore WordPress.Security.NonceVerification
+		switch ( $payment_method ) {
+			case self::GATEWAY_ID:
+				if ( ! isset( $_POST[ Alma_WC_Checkout_Renderer::ALMA_PNX_INPUT_NAME ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+					throw new Exception( '<strong>Installments count</strong> is required.' );
+				}
+				return $_POST[ Alma_WC_Checkout_Renderer::ALMA_PNX_INPUT_NAME ]; // phpcs:ignore WordPress.Security.NonceVerification
+			case Alma_WC_Checkout_Renderer::PAYMENT_METHOD_ID:
+				if ( ! isset( $_POST[ Alma_WC_Checkout_Renderer::ALMA_PAY_LATER_INPUT_NAME ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+					throw new Exception( '<strong>Deferred value</strong> is required.' );
+				}
+				return $_POST[ Alma_WC_Checkout_Renderer::ALMA_PAY_LATER_INPUT_NAME ]; // phpcs:ignore WordPress.Security.NonceVerification
+			default:
+				throw new Exception( 'Payment method <strong>is invalid</strong>.' );
+		}
 	}
 
 	/**
@@ -294,8 +321,7 @@ class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 			);
 		}
 		try {
-			// phpcs:ignore WordPress.Security.NonceVerification
-			$fee_plan_definition = $this->get_definition( $_POST['alma_fee_plan'] );
+			$fee_plan_definition = $this->get_definition( $this->get_chosen_fee_plan() );
 		} catch ( Exception $e ) {
 			$this->logger->log_stack_trace( 'Error while creating payment: ', $e );
 			wc_add_notice( $error_msg, 'error' );
@@ -374,97 +400,6 @@ class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 		}
 
 		wp_send_json( array( 'success' => true ) );
-	}
-
-	/**
-	 * Render payment plan with dates.
-	 *
-	 * @param string $default_plan Plan key.
-	 *
-	 * @return void
-	 */
-	private function render_payment_plan( $default_plan ) {
-		$eligibilities = $this->get_cart_eligibilities();
-		if ( $eligibilities ) {
-			foreach ( $eligibilities as $key => $plan ) {
-				?>
-				<div
-					id="<?php echo esc_attr( sprintf( self::ALMA_PAYMENT_PLAN_TABLE_ID_TEMPLATE, $key ) ); ?>"
-					class="<?php echo esc_attr( self::ALMA_PAYMENT_PLAN_TABLE_CSS_CLASS ); ?>"
-					style="
-						margin: 0 auto;
-						<?php if ( $key !== $default_plan ) { ?>
-						display: none;
-						<?php	} ?>
-					"
-				>
-					<?php
-					$plans_count = count( $plan->paymentPlan ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName
-					$plan_index  = 0;
-					foreach ( $plan->paymentPlan as $step ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName
-						?>
-						<!--suppress CssReplaceWithShorthandSafely -->
-						<p style="
-							display: flex;
-							justify-content: space-between;
-							padding: 4px 0;
-							margin: 4px 0;
-							<?php if ( ++$plan_index !== $plans_count ) { ?>
-								border-bottom: 1px solid lightgrey;
-							<?php	} else { ?>
-								padding-bottom: 0;
-								margin-bottom: 0;
-							<?php	} ?>
-						">
-							<span><?php echo esc_html( date_i18n( get_option( 'date_format' ), $step['due_date'] ) ); ?></span>
-							<span>€<?php echo esc_html( alma_wc_price_from_cents( $step['purchase_amount'] + $step['customer_fee'] ) ); ?></span>
-						</p>
-					<?php } ?>
-				</div>
-				<?php
-			}
-		}
-	}
-
-	/**
-	 * Get eligibilities from cart.
-	 *
-	 * @return array<int,Eligibility>|null
-	 */
-	private function get_cart_eligibilities() {
-		if ( ! $this->eligibilities ) {
-			$alma = alma_wc_plugin()->get_alma_client();
-			if ( ! $alma ) {
-				return null;
-			}
-
-			try {
-				$this->eligibilities = $alma->payments->eligibility( Alma_WC_Model_Payment::get_eligibility_payload_from_cart() );
-			} catch ( RequestError $error ) {
-				$this->logger->log_stack_trace( 'Error while checking payment eligibility: ', $error );
-				return null;
-			}
-		}
-
-		return $this->eligibilities;
-	}
-
-	/**
-	 * Get default plan according to eligible pnx list.
-	 *
-	 * @param string[] $plans the list of eligible pnx.
-	 *
-	 * @return string|null
-	 */
-	private static function get_default_plan( $plans ) {
-		if ( ! count( $plans ) ) {
-			return null;
-		}
-		if ( in_array( Alma_WC_Settings::DEFAULT_FEE_PLAN, $plans, true ) ) {
-			return Alma_WC_Settings::DEFAULT_FEE_PLAN;
-		}
-
-		return end( $plans );
 	}
 
 	/**
@@ -568,7 +503,7 @@ class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	private function is_cart_eligible() {
-		$eligibilities = $this->get_cart_eligibilities();
+		$eligibilities = alma_wc_plugin()->get_cart_eligibilities();
 
 		if ( ! $eligibilities ) {
 			return false;

@@ -64,17 +64,37 @@ class Alma_WC_Settings {
 			'enabled_general_3_0_0'                 => 'yes',
 			'title'                                 => __( 'Monthly Payments with Alma', 'alma-woocommerce-gateway' ),
 			'description'                           => __( 'Pay in multiple monthly payments with your credit card.', 'alma-woocommerce-gateway' ),
+			'pay_later_title'                       => __( 'Deferred Payments with Alma', 'alma-woocommerce-gateway' ),
+			'pay_later_description'                 => __( 'Buy now, pay later with your credit card.', 'alma-woocommerce-gateway' ),
 			'display_cart_eligibility'              => 'yes',
 			'display_product_eligibility'           => 'yes',
 			'variable_product_price_query_selector' => Alma_WC_Product_Handler::default_variable_price_selector(),
 			'excluded_products_list'                => array(),
-			'cart_not_eligible_message_gift_cards'  => __( 'Some products cannot be paid with monthly installments', 'alma-woocommerce-gateway' ),
+			'cart_not_eligible_message_gift_cards'  => __( 'Some products cannot be paid with monthly installments or deferred payments', 'alma-woocommerce-gateway' ),
 			'live_api_key'                          => '',
 			'test_api_key'                          => '',
 			'environment'                           => 'test',
 			'debug'                                 => 'yes',
 			'fully_configured'                      => false,
 		);
+	}
+
+	/**
+	 * Get default plan according to eligible pnx list.
+	 *
+	 * @param string[] $plans the list of eligible pnx.
+	 *
+	 * @return string|null
+	 */
+	public static function get_default_plan( $plans ) {
+		if ( ! count( $plans ) ) {
+			return null;
+		}
+		if ( in_array( self::DEFAULT_FEE_PLAN, $plans, true ) ) {
+			return self::DEFAULT_FEE_PLAN;
+		}
+
+		return end( $plans );
 	}
 
 	/**
@@ -214,7 +234,7 @@ class Alma_WC_Settings {
 	 * @return bool
 	 */
 	private function is_plan_enabled( $key ) {
-		return 'yes' === $this->__get( "enabled_${key}" );
+		return 'yes' === $this->__get( "enabled_$key" );
 	}
 
 	/**
@@ -248,7 +268,7 @@ class Alma_WC_Settings {
 	 * @return int
 	 */
 	public function get_min_amount( $key ) {
-		return $this->__get( "min_amount_${key}" );
+		return $this->__get( "min_amount_$key" );
 	}
 
 	/**
@@ -259,7 +279,7 @@ class Alma_WC_Settings {
 	 * @return int
 	 */
 	public function get_max_amount( $key ) {
-		return $this->__get( "max_amount_${key}" );
+		return $this->__get( "max_amount_$key" );
 	}
 
 	/**
@@ -405,7 +425,7 @@ class Alma_WC_Settings {
 	 * @return int
 	 */
 	private function get_deferred_days( $key ) {
-		return $this->__get( "deferred_days_${key}" );
+		return $this->__get( "deferred_days_$key" );
 	}
 
 	/**
@@ -416,7 +436,7 @@ class Alma_WC_Settings {
 	 * @return int
 	 */
 	private function get_deferred_months( $key ) {
-		return $this->__get( "deferred_months_${key}" );
+		return $this->__get( "deferred_months_$key" );
 	}
 
 	/**
@@ -427,11 +447,11 @@ class Alma_WC_Settings {
 	 * @return int
 	 */
 	private function get_installments_count( $key ) {
-		return $this->__get( "installments_count_${key}" );
+		return $this->__get( "installments_count_$key" );
 	}
 
 	/**
-	 * Check if a plan is eligibile.
+	 * Check if a plan is eligible.
 	 *
 	 * @param array $plan Plan definition.
 	 * @param int   $amount Price.

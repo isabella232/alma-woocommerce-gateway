@@ -123,7 +123,7 @@ msgid "→ General configuration"
 msgstr ""
 
 #: includes/class-alma-wc-admin-form.php:237
-msgid "Title"
+msgid "Multiple monthly payment title"
 msgstr ""
 
 #: includes/class-alma-wc-admin-form.php:239
@@ -132,7 +132,7 @@ msgid ""
 msgstr ""
 
 #: includes/class-alma-wc-admin-form.php:244
-msgid "Description"
+msgid "Multiple monthly payment description"
 msgstr ""
 
 #: includes/class-alma-wc-admin-form.php:247
@@ -403,7 +403,7 @@ msgid "Pay in multiple monthly payments with your credit card."
 msgstr ""
 
 #: includes/class-alma-wc-settings.php:69
-msgid "Some products cannot be paid with monthly installments"
+msgid "Some products cannot be paid with monthly installments or deferred payments"
 msgstr ""
 
 #. translators: %s: #product_id (if any)

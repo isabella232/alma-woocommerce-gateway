@@ -44,6 +44,7 @@ class Alma_WC_Admin_Form {
 		return array_merge(
 			self::get_instance()->init_enabled_field( $default_settings ),
 			self::get_instance()->init_fee_plans_fields( $default_settings ),
+			self::get_instance()->init_payment_method_fields( $default_settings ),
 			self::get_instance()->init_general_settings_fields( $default_settings ),
 			self::get_instance()->init_api_key_fields( __( '→ API configuration', 'alma-woocommerce-gateway' ), $default_settings ),
 			self::get_instance()->init_debug_fields( $default_settings )
@@ -255,20 +256,6 @@ class Alma_WC_Admin_Form {
 			'general_section'                       => array(
 				'title' => '<hr>' . __( '→ General configuration', 'alma-woocommerce-gateway' ),
 				'type'  => 'title',
-			),
-			'title'                                 => array(
-				'title'       => __( 'Title', 'alma-woocommerce-gateway' ),
-				'type'        => 'text',
-				'description' => __( 'This controls the payment method name which the user sees during checkout.', 'alma-woocommerce-gateway' ),
-				'default'     => $default_settings['title'],
-				'desc_tip'    => true,
-			),
-			'description'                           => array(
-				'title'       => __( 'Description', 'alma-woocommerce-gateway' ),
-				'type'        => 'text',
-				'desc_tip'    => true,
-				'description' => __( 'This controls the payment method description which the user sees during checkout.', 'alma-woocommerce-gateway' ),
-				'default'     => $default_settings['description'],
 			),
 			'display_product_eligibility'           => array(
 				'title'   => __( 'Product eligibility notice', 'alma-woocommerce-gateway' ),
@@ -506,6 +493,50 @@ class Alma_WC_Admin_Form {
 		$select_options_keys = array_keys( $select_options );
 
 		return in_array( $selected_fee_plan, $select_options_keys, true ) ? $selected_fee_plan : $select_options_keys[0];
+	}
+
+	/**
+	 * Init payment methods titles & descriptions.
+	 *
+	 * @param array $default_settings as default settings.
+	 *
+	 * @return array
+	 */
+	private function init_payment_method_fields( array $default_settings ) {
+		return array(
+			'payment_method_section' => array(
+				'title' => '<hr>' . __( '→ Payment methods configuration', 'alma-woocommerce-gateway' ),
+				'type'  => 'title',
+			),
+			'title'                  => array(
+				'title'       => __( 'Multiple monthly payment title', 'alma-woocommerce-gateway' ),
+				'type'        => 'text',
+				'description' => __( 'This controls the multiple monthly payment method name which the user sees during checkout.', 'alma-woocommerce-gateway' ),
+				'default'     => $default_settings['title'],
+				'desc_tip'    => true,
+			),
+			'description'            => array(
+				'title'       => __( 'Multiple monthly payment description', 'alma-woocommerce-gateway' ),
+				'type'        => 'text',
+				'desc_tip'    => true,
+				'description' => __( 'This controls the multiple monthly payment method description which the user sees during checkout.', 'alma-woocommerce-gateway' ),
+				'default'     => $default_settings['description'],
+			),
+			'pay_later_title'        => array(
+				'title'       => __( 'Deferred payment title', 'alma-woocommerce-gateway' ),
+				'type'        => 'text',
+				'description' => __( 'This controls the deferred payment method name which the user sees during checkout.', 'alma-woocommerce-gateway' ),
+				'default'     => $default_settings['pay_later_title'],
+				'desc_tip'    => true,
+			),
+			'pay_later_description'  => array(
+				'title'       => __( 'Deferred payment description', 'alma-woocommerce-gateway' ),
+				'type'        => 'text',
+				'desc_tip'    => true,
+				'description' => __( 'This controls the deferred payment method description which the user sees during checkout.', 'alma-woocommerce-gateway' ),
+				'default'     => $default_settings['pay_later_description'],
+			),
+		);
 	}
 
 }
