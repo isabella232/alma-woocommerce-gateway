@@ -13,18 +13,39 @@
 	var jqueryUpdateEvent = settings.jqueryUpdateEvent;
 	var firstRender       = settings.firstRender;
 
-	function isVisible( elem ) {
+	/**
+	 * Check visibility
+	 *
+	 * @param $elem jQuery
+	 * @return {boolean}
+	 */
+	function isVisible( $elem ) {
+		if ( ! $elem || $elem.length === 0 ) {
+			return false;
+		}
+		var elem = $elem.get()[0];
 		return ! ! ( elem && ( elem.offsetWidth || elem.offsetHeight || elem.getClientRects().length ) );
 	}
 
+	/**
+	 * Retrieve amount element if found
+	 *
+	 * @return {null|*|jQuery|HTMLElement}
+	 */
 	function getAmountElement() {
 		var amountQuerySelector = settings.amountQuerySelector;
 
-		if ( amountQuerySelector ) {
-			return document.querySelector( amountQuerySelector );
+		if ( ! amountQuerySelector ) {
+
+			return null;
+		}
+		var $amountElement = jQuery( amountQuerySelector );
+		if ( ! $amountElement.length > 0 ) {
+
+			return null
 		}
 
-		return null
+		return $amountElement;
 	}
 
 	window.AlmaInitWidget = function () {
@@ -42,10 +63,10 @@
 		var apiMode    = settings.apiMode;
 		var amount     = parseInt( settings.amount );
 
-		var amountElement = getAmountElement()
-		if (amountElement) {
-			if (isVisible( amountElement )) {
-				var child = amountElement.firstChild;
+		var $amountElement = getAmountElement()
+		if ($amountElement) {
+			if (isVisible( $amountElement )) {
+				var child = $amountElement.get()[0].firstChild;
 				while (child) {
 					if (child.nodeType === ( Node.TEXT_NODE || 3 )) {
 						var strAmount = child.data
@@ -96,16 +117,16 @@
 				// or its disappearing when some choices are missing. We first try to find an ongoing animation to
 				// update our widget *after* the animation has taken place, so that it uses up-to-date information/DOM
 				// in AlmaInitWidget.
-				var amountElement = getAmountElement()
-				var timer         = $.timers.find(
+				var $amountElement = getAmountElement()
+				var timer          = $.timers.find(
 					function ( t ) {
-						return t.elem === jQuery( amountElement ).closest( '.woocommerce-variation' ).get( 0 )
+						return t.elem === jQuery( $amountElement ).closest( '.woocommerce-variation' ).get( 0 )
 					}
 				)
 
 				if ( timer ) {
 					window.setTimeout( window.AlmaInitWidget, timer.anim.duration )
-				} else if ( isVisible( amountElement ) || ! settings.amountQuerySelector ) {
+				} else if ( isVisible( $amountElement ) || ! settings.amountQuerySelector ) {
 					window.AlmaInitWidget()
 				}
 			}
