@@ -115,7 +115,6 @@ if [ ! -d /var/www/html/wp-content/plugins/alma-woocommerce-gateway/vendor/alma 
     cd /var/www/html/wp-content/plugins/alma-woocommerce-gateway/
     /usr/bin/composer update >&2
     /usr/bin/composer install --no-dev >&2
-    chown -R "$user:$group" /var/www/html/wp-content/plugins/alma-woocommerce-gateway/vendor/ || true
     cd -
 fi
 # {{{ function wp_cli
