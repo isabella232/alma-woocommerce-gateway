@@ -125,6 +125,9 @@ class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 	 */
 	public function init_form_fields() {
 		$this->form_fields = Alma_WC_Admin_Form::init_form_fields();
+		// $this->form_fields = [];
+
+        // dump($this->form_fields);
 	}
 
 	/**
@@ -143,6 +146,33 @@ class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 	 */
 	public function process_admin_options() {
 		$previously_saved = parent::process_admin_options();
+
+        // gilles - 20220120
+        $post_data = $this->get_post_data();
+        error_log('post_data');
+        error_log(json_encode($post_data));
+
+        // Save title translations
+        $alma_translations = get_option('alma_translations');
+        if (!is_array($alma_translations)) $alma_translations = [];
+        $title = $description = [];
+        foreach ($post_data as $key => $value) {
+            if (strpos($key, 'woocommerce_alma_title_') !== false) {
+                $code_lang = str_replace('woocommerce_alma_title_', '', $key);
+                if (!empty($value)) {
+                    $title[$code_lang] = $value;
+                }
+            }
+            if (strpos($key, 'woocommerce_alma_description_') !== false) {
+                $code_lang = str_replace('woocommerce_alma_description_', '', $key);
+                if (!empty($value)) {
+                    $description[$code_lang] = $value;
+                }
+            }
+        }
+        $alma_translations['title']       = $title;
+        $alma_translations['description'] = $description;
+        update_option( 'alma_translations', $alma_translations );
 
 		$this->convert_amounts_to_cents();
 		$this->update_settings_from_merchant();

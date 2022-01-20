@@ -762,3 +762,97 @@ class Alma_WC_Plugin {
 		return count( $this->get_eligible_plans_keys_for_cart() ) > 0;
 	}
 }
+
+
+
+
+function alma_woocommerce_gateway_title($title, $id) {
+
+    if ($id != 'alma') {
+        return $title;
+    }
+
+    $alma_translations = get_option('alma_translations');
+
+    if ($alma_translations && isset($alma_translations['title'])) {
+        foreach ($alma_translations['title'] as $code_langue => $value) {
+            if ($code_langue == get_locale()) {
+                return $value;
+            }
+        }
+    }
+
+    return $title;
+
+    // return __( Alma_WC_Settings::default_settings()['title'], 'alma-woocommerce-gateway' );
+}
+add_filter('woocommerce_gateway_title', 'alma_woocommerce_gateway_title', 10, 2);
+
+function alma_woocommerce_gateway_description($description, $id) {
+
+    if ($id != 'alma') {
+        return $description;
+    }
+
+    return __( Alma_WC_Settings::default_settings()['description'], 'alma-woocommerce-gateway' );
+}
+// add_filter('woocommerce_gateway_description', 'alma_woocommerce_gateway_description', 10, 2);
+
+
+// /wp-admin/admin.php?page=wc-settings&tab=checkout&section=alma
+function alma_admin_current_screen() {
+
+    global $my_admin_page;
+    $screen = get_current_screen();
+
+    if (
+            is_admin() &&
+            ($screen->id == 'woocommerce_page_wc-settings') &&
+            (isset( $_GET['tab'] ) && $_GET['tab'] == 'checkout') &&
+            (isset( $_GET['section'] ) && $_GET['section'] == 'alma')
+    ) {
+
+        ob_start();
+        // https://wpastra.com/docs/complete-list-wordpress-locale-codes/
+        $list_pays = [
+                'fr_FR' => 'French (France)',
+                'en_GB' => 'English',
+                'en_US' => 'English (UK)',
+                'es_ES' => 'Spanish (Spain)',
+                'it_IT' => 'Italian',
+        ];
+
+        echo '<select class="list_lang_title">';
+        foreach ($list_pays as $code => $label) {
+            echo '<option value="'.$code.'">'.$label.'</option>';
+        }
+        echo '</select>';
+        // echo '<p className="description">Valeur par défaut pour cette langue</p>';
+        $list_lang_title = ob_get_clean();
+        // dump($output);
+
+        $lang_title_saved = [];
+
+        $alma_translations = get_option('alma_translations');
+
+        if ($alma_translations && isset($alma_translations['title'])) {
+            foreach ($alma_translations['title'] as $code_langue => $value) {
+                $lang_title_saved[$code_langue] = $value;
+            }
+        }
+
+        ?>
+        <script id="alma_i18n">
+            let is_page_alma_payment = 1;
+            let list_lang_title = '<?php echo $list_lang_title; ?>';
+            let lang_title_saved = '<?php echo json_encode($lang_title_saved); ?>';
+        </script>
+        <?php
+    }
+}
+add_action( 'admin_head', 'alma_admin_current_screen' );
+
+
+
+
+

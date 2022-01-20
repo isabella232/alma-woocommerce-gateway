@@ -157,7 +157,7 @@ jQuery(document).ready(function() {
             }
         });
         if (!isValid) {
-            var plan = $input.attr('id').substring(28);
+            var plan = $input.attr('id').substring(22);
             select_alma_fee_plan_ids.filter(validId).forEach(function (id) {
                 var $select = jQuery('#'+id);
                 if ($select.find('option[value='+plan+']').length > 0) {
@@ -169,4 +169,99 @@ jQuery(document).ready(function() {
             });
         }
     });
+
+
+
+
+
+
+
+
+    console.log('list_lang_title = '+list_lang_title);
+
+    if (1 == is_page_alma_payment) {
+
+        parent = jQuery( "table.form-table tr:has(input#woocommerce_alma_title)" );
+        input  = jQuery( "input#woocommerce_alma_title" );
+
+        input.after( "<a href='#add_title_translation' id='add_title_translation'> + Ajouter des traductions</a>" );
+
+        jQuery(document).on('click', '#add_title_translation', function (e) {
+
+            e.preventDefault();
+            console.log('click plus');
+            let new_item = parent.clone();
+            new_item.addClass('tr_title_translation');
+            new_item.children('.titledesc').html('');
+            new_item.find('#add_title_translation').remove();
+            new_item.find('input').attr({
+                'id':'',
+                'name':'alma_title_tmp',
+                'value':''
+            });
+            // list_lang_title.insertAfter( new_item.children('input') );
+
+            new_item.find('fieldset').append(list_lang_title);
+
+            // new_item.find('select').trigger('change');
+
+            // console.log(new_item.html());
+            new_item.insertAfter(parent);
+        });
+
+        jQuery(document).on('change', '.list_lang_title', function (e) {
+            e.preventDefault();
+            let new_id = 'woocommerce_alma_title_' + jQuery(this).val();
+            let input = jQuery(this).siblings('input');
+            input.attr({
+                'id':new_id,
+                'name':new_id
+            });
+        });
+
+        // console.log('BEFORE');
+        // console.log(lang_title_saved);
+
+        try {
+            var json = jQuery.parseJSON(lang_title_saved);
+        }
+        catch(err) {
+            console.error('alma json "lang_title_saved" could not be parsed !');
+        }
+        console.log('json');
+        console.log(json);
+
+        jQuery.each( json, function( code_lang, value ) {
+            // console.log( code_lang + ": " + value );
+            jQuery('#add_title_translation').trigger('click');
+
+            console.log('code_lang');
+            console.log(code_lang);
+
+            let my_input = jQuery('input[name=alma_title_tmp]').filter(":last");
+            my_input.val(value).css('border', '1px turquoise solid');
+            my_input.siblings('select').val(code_lang);
+            my_input.siblings('select').trigger('change');
+
+        });
+
+    }
+
+
+
 })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
