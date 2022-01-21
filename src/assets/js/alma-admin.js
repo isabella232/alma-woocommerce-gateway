@@ -170,14 +170,10 @@ jQuery(document).ready(function() {
         }
     });
 
-
-
-
-
-
-
-
-    console.log('list_lang_title = '+list_lang_title);
+    /**
+     * I18n
+     */
+    // console.log('list_lang_title = '+list_lang_title);
 
     if (1 == is_page_alma_payment) {
 
@@ -189,7 +185,7 @@ jQuery(document).ready(function() {
         jQuery(document).on('click', '#add_title_translation', function (e) {
 
             e.preventDefault();
-            console.log('click plus');
+            // console.log('click plus');
             let new_item = parent.clone();
             new_item.addClass('tr_title_translation');
             new_item.children('.titledesc').html('');
@@ -199,13 +195,7 @@ jQuery(document).ready(function() {
                 'name':'alma_title_tmp',
                 'value':''
             });
-            // list_lang_title.insertAfter( new_item.children('input') );
-
             new_item.find('fieldset').append(list_lang_title);
-
-            // new_item.find('select').trigger('change');
-
-            // console.log(new_item.html());
             new_item.insertAfter(parent);
         });
 
@@ -228,26 +218,22 @@ jQuery(document).ready(function() {
         catch(err) {
             console.error('alma json "lang_title_saved" could not be parsed !');
         }
-        console.log('json');
-        console.log(json);
+        // console.log('json');
+        // console.log(json);
 
         jQuery.each( json, function( code_lang, value ) {
             // console.log( code_lang + ": " + value );
             jQuery('#add_title_translation').trigger('click');
 
-            console.log('code_lang');
-            console.log(code_lang);
+            // console.log('code_lang');
+            // console.log(code_lang);
 
             let my_input = jQuery('input[name=alma_title_tmp]').filter(":last");
             my_input.val(value).css('border', '1px turquoise solid');
             my_input.siblings('select').val(code_lang);
             my_input.siblings('select').trigger('change');
-
         });
-
     }
-
-
 
 })
 

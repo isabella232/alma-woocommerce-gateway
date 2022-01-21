@@ -195,6 +195,10 @@ class Alma_WC_Plugin {
 		add_filter( 'plugin_action_links_' . plugin_basename( ALMA_WC_PLUGIN_FILE ), array( $this, 'plugin_action_links' ) );
 		add_action( 'wp_ajax_alma_dismiss_notice_message', array( $this, 'ajax_dismiss_notice' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'alma_admin_enqueue_scripts' ) );
+
+		add_filter( 'woocommerce_gateway_title', array( $this, 'alma_woocommerce_gateway_title' ), 10, 2 );
+		add_filter( 'woocommerce_gateway_description', array( $this, 'alma_woocommerce_gateway_description' ), 10, 2 );
+		add_action( 'admin_head', array( $this, 'alma_admin_current_screen' ) );
 	}
 
 	/**
@@ -761,96 +765,88 @@ class Alma_WC_Plugin {
 	public function is_cart_eligible() {
 		return count( $this->get_eligible_plans_keys_for_cart() ) > 0;
 	}
+
+
+	/**
+	 * Filter the alma gateway title (visible on checkout page).
+	 *
+	 * @param  string  $title The original title.
+	 * @param  integer $id The payment gateway id.
+	 * @return string
+	 */
+	public function alma_woocommerce_gateway_title( $title, $id ) {
+
+		if ( 'alma' !== $id ) {
+			return $title;
+		}
+
+		$alma_translations = get_option( 'alma_translations' );
+
+		if ( $alma_translations && isset( $alma_translations['title'] ) ) {
+			if ( isset( $alma_translations['title'][ get_locale() ] ) ) {
+				return $alma_translations['title'][ get_locale() ];
+			}
+		}
+
+		return $title;
+	}
+
+
+
+	/**
+	 * For admin url : /wp-admin/admin.php?page=wc-settings&tab=checkout&section=alma
+	 *
+	 * @return void
+	 */
+	public function alma_admin_current_screen() {
+
+		global $my_admin_page;
+		$screen = get_current_screen();
+
+		if (
+			is_admin() &&
+			( 'woocommerce_page_wc-settings' === $screen->id ) &&
+			( isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] ) && // phpcs:ignore WordPress.Security.NonceVerification
+			( isset( $_GET['section'] ) && 'alma' === $_GET['section'] ) // phpcs:ignore WordPress.Security.NonceVerification
+		) {
+			$list_pays = array(
+				'fr_FR' => 'French (France)',
+				'en_GB' => 'English',
+				'en_US' => 'English (UK)',
+				'es_ES' => 'Spanish (Spain)',
+				'it_IT' => 'Italian',
+			);
+
+			$list_lang_title = '<select class="list_lang_title">';
+			foreach ( $list_pays as $code => $label ) {
+				$list_lang_title .= '<option value="' . $code . '">' . $label . '</option>';
+			}
+			$list_lang_title .= '</select>';
+
+			$lang_title_saved  = array();
+			$alma_translations = get_option( 'alma_translations' );
+
+			if ( $alma_translations && isset( $alma_translations['title'] ) ) {
+				foreach ( $alma_translations['title'] as $code_langue => $value ) {
+					$lang_title_saved[ $code_langue ] = $value;
+				}
+			}
+			?>
+			<script id="alma_i18n">
+				let is_page_alma_payment = 1;
+				<?php /* phpcs:disable */ ?>
+				let list_lang_title = '<?php echo $list_lang_title; ?>';
+				<?php /* phpcs:enable */ ?>
+				let lang_title_saved = '<?php echo wp_json_encode( $lang_title_saved ); ?>';
+			</script>
+			<?php
+		}
+	}
+
+
 }
 
 
-
-
-function alma_woocommerce_gateway_title($title, $id) {
-
-    if ($id != 'alma') {
-        return $title;
-    }
-
-    $alma_translations = get_option('alma_translations');
-
-    if ($alma_translations && isset($alma_translations['title'])) {
-        foreach ($alma_translations['title'] as $code_langue => $value) {
-            if ($code_langue == get_locale()) {
-                return $value;
-            }
-        }
-    }
-
-    return $title;
-
-    // return __( Alma_WC_Settings::default_settings()['title'], 'alma-woocommerce-gateway' );
-}
-add_filter('woocommerce_gateway_title', 'alma_woocommerce_gateway_title', 10, 2);
-
-function alma_woocommerce_gateway_description($description, $id) {
-
-    if ($id != 'alma') {
-        return $description;
-    }
-
-    return __( Alma_WC_Settings::default_settings()['description'], 'alma-woocommerce-gateway' );
-}
-// add_filter('woocommerce_gateway_description', 'alma_woocommerce_gateway_description', 10, 2);
-
-
-// /wp-admin/admin.php?page=wc-settings&tab=checkout&section=alma
-function alma_admin_current_screen() {
-
-    global $my_admin_page;
-    $screen = get_current_screen();
-
-    if (
-            is_admin() &&
-            ($screen->id == 'woocommerce_page_wc-settings') &&
-            (isset( $_GET['tab'] ) && $_GET['tab'] == 'checkout') &&
-            (isset( $_GET['section'] ) && $_GET['section'] == 'alma')
-    ) {
-
-        ob_start();
-        // https://wpastra.com/docs/complete-list-wordpress-locale-codes/
-        $list_pays = [
-                'fr_FR' => 'French (France)',
-                'en_GB' => 'English',
-                'en_US' => 'English (UK)',
-                'es_ES' => 'Spanish (Spain)',
-                'it_IT' => 'Italian',
-        ];
-
-        echo '<select class="list_lang_title">';
-        foreach ($list_pays as $code => $label) {
-            echo '<option value="'.$code.'">'.$label.'</option>';
-        }
-        echo '</select>';
-        // echo '<p className="description">Valeur par défaut pour cette langue</p>';
-        $list_lang_title = ob_get_clean();
-        // dump($output);
-
-        $lang_title_saved = [];
-
-        $alma_translations = get_option('alma_translations');
-
-        if ($alma_translations && isset($alma_translations['title'])) {
-            foreach ($alma_translations['title'] as $code_langue => $value) {
-                $lang_title_saved[$code_langue] = $value;
-            }
-        }
-
-        ?>
-        <script id="alma_i18n">
-            let is_page_alma_payment = 1;
-            let list_lang_title = '<?php echo $list_lang_title; ?>';
-            let lang_title_saved = '<?php echo json_encode($lang_title_saved); ?>';
-        </script>
-        <?php
-    }
-}
-add_action( 'admin_head', 'alma_admin_current_screen' );
 
 
 
