@@ -59,14 +59,14 @@ class Alma_WC_Model_Payment {
 
 		$data = array(
 			'payment' => array(
-				'purchase_amount'     => $order->get_total(),
-				'return_url'          => Alma_WC_Webhooks::url_for( Alma_WC_Webhooks::CUSTOMER_RETURN ),
-				'ipn_callback_url'    => Alma_WC_Webhooks::url_for( Alma_WC_Webhooks::IPN_CALLBACK ),
-				'customer_cancel_url' => self::get_customer_cancel_url(),
-				'installments_count'  => $fee_plan_definition['installments_count'],
-				'deferred_days'       => $fee_plan_definition['deferred_days'],
-				'deferred_months'     => $fee_plan_definition['deferred_months'],
-				'custom_data'         => array(
+				'purchase_amount'      => $order->get_total(),
+				'return_url'           => Alma_WC_Webhooks::url_for( Alma_WC_Webhooks::CUSTOMER_RETURN ),
+				'ipn_callback_url'     => Alma_WC_Webhooks::url_for( Alma_WC_Webhooks::IPN_CALLBACK ),
+				'customer_cancel_url'  => self::get_customer_cancel_url(),
+				'installments_count'   => $fee_plan_definition['installments_count'],
+				'deferred_days'        => $fee_plan_definition['deferred_days'],
+				'deferred_months'      => $fee_plan_definition['deferred_months'],
+				'custom_data'          => array(
 					'order_id'  => $order_id,
 					'order_key' => $order->get_order_key(),
 				),
@@ -75,8 +75,14 @@ class Alma_WC_Model_Payment {
 				'merchant_reference' => $order->get_order_reference(),
 				'merchant_url'       => $order->get_merchant_url(),
 				'customer_url'       => $order->get_customer_url(),
-			),
+			)
 		);
+
+        if ( Alma_WC_Payment_Upon_Trigger::is_payment_upon_trigger_enabled_for_fee_plan(  $fee_plan_definition['plan_key'] )  ) {
+            $data['payment']['deferred']             = "trigger";
+            //@todo ceci est un peu compliqué de plus je me demande à partir de quelle version de PHP on peut écrire ça comme ça.
+            $data['payment']['deferred_description'] = Alma_WC_Payment_Upon_Trigger::get_display_texts()[ alma_wc_plugin()->settings->payment_upon_trigger_display_text ];
+        }
 
 		if ( $order->has_billing_address() ) {
 			$billing_address                    = $order->get_billing_address();

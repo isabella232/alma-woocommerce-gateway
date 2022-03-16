@@ -95,6 +95,16 @@ class Alma_WC_Payment_Upon_Trigger {
         );
 	}
 
+	/**
+	 * Tells if a fee plan is allowed to accept "payment upon trigger" on admin alma dashboard.
+	 *
+	 * @return bool
+	 */
+	public static function is_payment_upon_trigger_enabled_for_fee_plan() {
+        // @todo to be implemented
+		return true;
+	}
+
 }
 //
 //^ array:7 [▼
