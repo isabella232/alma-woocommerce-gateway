@@ -464,11 +464,14 @@ class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 	 */
 	private function render_plan( $eligibility ) {
 
+		dump( $eligibility );
+
 		$plan_index   = 1;
 		$payment_plan = $eligibility->paymentPlan; // phpcs:ignore WordPress.NamingConventions.ValidVariableName
 		$plans_count  = count( $payment_plan );
-
+		dump( $payment_plan );
 		foreach ( $payment_plan as $step ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName
+			dd( $step );
 			$display_customer_fee = 1 === $plan_index && $eligibility->getInstallmentsCount() <= 4 && $step['customer_fee'] > 0;
 			?>
 			<!--suppress CssReplaceWithShorthandSafely -->
@@ -499,11 +502,20 @@ class Alma_WC_Payment_Gateway extends WC_Payment_Gateway {
 						);
 						?>
 					</span>
-				<?php } else { ?>
-					<?php $justify_fees = 'right'; ?>
-					<span><?php echo esc_html( date_i18n( get_option( 'date_format' ), $step['due_date'] ) ); ?></span>
-					<span><?php echo wp_kses_post( alma_wc_format_price_from_cents( $step['total_amount'] ) ); ?></span>
-				<?php } ?>
+					<?php
+				} else {
+					if ( Alma_WC_Payment_Upon_Trigger::is_payment_upon_trigger_enabled_for_payment_plan( $payment_plan ) ) {
+						echo 'mlqdsjflqsfkj';
+
+					} else {
+						$justify_fees = 'right';
+						?>
+						<span><?php echo esc_html( date_i18n( get_option( 'date_format' ), $step['due_date'] ) ); ?></span>
+						<span><?php echo wp_kses_post( alma_wc_format_price_from_cents( $step['total_amount'] ) ); ?></span>
+						<?php
+					}
+				}
+				?>
 			</p>
 			<?php if ( $display_customer_fee ) { ?>
 				<p style="

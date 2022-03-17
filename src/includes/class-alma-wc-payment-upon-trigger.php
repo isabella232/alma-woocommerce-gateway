@@ -5,6 +5,11 @@
  * @package Alma_WooCommerce_Gateway
  */
 
+use Alma\API\Entities\FeePlan;
+use Alma\API\RequestError;
+
+// @todo mandatory ?
+
 if ( ! defined( 'ABSPATH' ) ) {
 	die( 'Not allowed' ); // Exit if accessed directly.
 }
@@ -14,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Alma_WC_Payment_Upon_Trigger {
 
-    const FOO = 'bar';
+	const FOO = 'bar';
 
 	/**
 	 * Logger
@@ -27,46 +32,46 @@ class Alma_WC_Payment_Upon_Trigger {
 	 * __construct.
 	 */
 	public function __construct() {
-        add_action( 'woocommerce_order_status_changed', array( $this, 'woocommerce_order_status_changed' ), 10, 3 );
+		add_action( 'woocommerce_order_status_changed', array( $this, 'woocommerce_order_status_changed' ), 10, 3 );
 	}
 
-    /**
-     * Callback function for the event "order status changed".
-     *
-     * @param integer $order_id The order id.
-     * @param string $previous_status Order status before it changes.
-     * @param string $next_status Order status affected to the order.
-     * @return void
-     */
+	/**
+	 * Callback function for the event "order status changed".
+	 *
+	 * @param integer $order_id The order id.
+	 * @param string  $previous_status Order status before it changes.
+	 * @param string  $next_status Order status affected to the order.
+	 * @return void
+	 */
 	public function woocommerce_order_status_changed( $order_id, $previous_status, $next_status ) {
 
-        if ( 'yes'  !== alma_wc_plugin()->settings->payment_upon_trigger_enabled ) {
-            return;
-        }
+		if ( 'yes' !== alma_wc_plugin()->settings->payment_upon_trigger_enabled ) {
+			return;
+		}
 
-        if ( $next_status === alma_wc_plugin()->settings->payment_upon_trigger_event ) {
+		if ( $next_status === alma_wc_plugin()->settings->payment_upon_trigger_event ) {
 
-            /*
-            @check if order isn't flag as already paid.
-            */
+			/*
+			@todo check if order isn't flag as already paid.
+			*/
 
-            $this->launch_payment( $order_id );
-        }
+			$this->launch_payment( $order_id );
+		}
 	}
 
-    /**
-     * Launches the payment on trigger for an order.
-     *
-     * @param integer $order_id The order id.
-     * @return void
-     */
+	/**
+	 * Launches the payment on trigger for an order.
+	 *
+	 * @param integer $order_id The order id.
+	 * @return void
+	 */
 	private function launch_payment( $order_id ) {
 
-        /*
-        @flag order as already paid.
-        */
+		/*
+		@todo flag order as already paid.
+		*/
 
-        error_log('launch payment for the order_id = ' . $order_id);
+		error_log( 'launch payment for the order_id = ' . $order_id );
 	}
 
 	/**
@@ -76,11 +81,11 @@ class Alma_WC_Payment_Upon_Trigger {
 	 */
 	public static function get_order_statuses() {
 		$get_order_statuses = wc_get_order_statuses();
-        foreach ( $get_order_statuses as $status_key => $status_description ) {
-            $get_order_statuses[ str_replace( 'wc-', '', $status_key ) ] = $status_description;
-            unset( $get_order_statuses[ $status_key ] );
-        }
-        return $get_order_statuses;
+		foreach ( $get_order_statuses as $status_key => $status_description ) {
+			$get_order_statuses[ str_replace( 'wc-', '', $status_key ) ] = $status_description;
+			unset( $get_order_statuses[ $status_key ] );
+		}
+		return $get_order_statuses;
 	}
 
 	/**
@@ -90,9 +95,34 @@ class Alma_WC_Payment_Upon_Trigger {
 	 */
 	public static function get_display_texts() {
 		return array(
-            'payment_on_order_create' => __( 'Payment on order creation' , 'alma-woocommerce-gateway' ),
-            'payment_on_shipping'     => __( 'Payment on shipping' , 'alma-woocommerce-gateway' )
-        );
+			'at_shipping' => __( 'At shipping', 'alma-woocommerce-gateway' ),
+			'example_1'   => __( 'Example 1', 'alma-woocommerce-gateway' ),
+			'example_2'   => __( 'Example 2', 'alma-woocommerce-gateway' ),
+		);
+	}
+
+	/**
+	 * Has the merchant the "payment upon trigger" enabled in his admin alma dashboard.
+	 *
+	 * @return bool
+	 */
+	public static function has_merchant_payment_upon_trigger_enabled() {
+		$fee_plans = null;
+		try {
+			$fee_plans = alma_wc_plugin()->get_fee_plans();
+		} catch ( RequestError $e ) {
+			alma_wc_plugin()->handle_settings_exception( $e );
+		}
+		if ( ! $fee_plans ) {
+			return false;
+		}
+
+		foreach ( $fee_plans as $fee_plan ) {
+			if ( self::is_payment_upon_trigger_enabled_for_fee_plan( $fee_plan ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -100,21 +130,57 @@ class Alma_WC_Payment_Upon_Trigger {
 	 *
 	 * @return bool
 	 */
-	public static function is_payment_upon_trigger_enabled_for_fee_plan() {
-        // @todo to be implemented
-		return true;
+	public static function is_payment_upon_trigger_enabled_for_fee_plan( $fee_plan ) {
+		if ( $fee_plan->deferred_trigger_limit_days ) {
+			return true;
+		}
+		return false;
 	}
 
+	/**
+	 * Tells if a payment plan ($eligibility->payment_plan) has "payment upon trigger" enabled on alma admin dashboard.
+	 *
+	 * @return bool
+	 */
+	public static function is_payment_upon_trigger_enabled_for_payment_plan( $payment_plan ) {
+
+		$fee_plans = null;
+		try {
+			$fee_plans = alma_wc_plugin()->get_fee_plans();
+		} catch ( RequestError $e ) {
+			alma_wc_plugin()->handle_settings_exception( $e );
+		}
+		if ( ! $fee_plans ) {
+			return false;
+		}
+		dd( $payment_plan );
+
+		foreach ( $fee_plans as $fee_plan ) {
+			// dd(gettype($fee_plan));
+			if (
+				$fee_plan->getInstallmentsCount() === $payment_plan['installmentsCount'] &&
+				$fee_plan->getDeferredDays() === $payment_plan['deferredDays'] &&
+				$fee_plan->getDeferredMonths() === $payment_plan['deferredMonths'] &&
+				$fee_plan->deferred_trigger_limit_days
+			) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+
 }
+
 //
-//^ array:7 [▼
-//  "pending" => "Pending payment"
-//  "processing" => "Processing"
-//  "on-hold" => "On hold"
-//  "completed" => "Completed"
-//  "cancelled" => "Cancelled"
-//  "refunded" => "Refunded"
-//  "failed" => "Failed"
-//]
+// ^ array:7 [▼
+// "pending" => "Pending payment"
+// "processing" => "Processing"
+// "on-hold" => "On hold"
+// "completed" => "Completed"
+// "cancelled" => "Cancelled"
+// "refunded" => "Refunded"
+// "failed" => "Failed"
+// ]
 
 new Alma_WC_Payment_Upon_Trigger();
