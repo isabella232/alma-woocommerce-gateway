@@ -79,8 +79,7 @@ class Alma_WC_Model_Payment {
 		);
 
 		if ( Alma_WC_Payment_Upon_Trigger::is_payment_upon_trigger_enabled_for_fee_plan( $fee_plan_definition['plan_key'] ) ) {
-			$data['payment']['deferred'] = 'trigger';
-			// @todo ceci est un peu compliqué de plus je me demande à partir de quelle version de PHP on peut écrire ça comme ça.
+			$data['payment']['deferred']             = 'trigger';
 			$data['payment']['deferred_description'] = Alma_WC_Payment_Upon_Trigger::get_display_texts()[ alma_wc_plugin()->settings->payment_upon_trigger_display_text ];
 		}
 

@@ -54,12 +54,12 @@ class Alma_WC_Admin_Form {
 	/**
 	 * Inits Payment upon trigger fields.
 	 *
-	 * @author gilles.
 	 * @param array $default_settings as default settings.
 	 *
 	 * @return array[]
 	 */
 	private function init_payment_upon_trigger_fields( $default_settings ) {
+
 		$title_field = array(
 			'payment_upon_trigger_section' => array(
 				'title' => '<hr>' . __( '→ Payment upon trigger configuration', 'alma-woocommerce-gateway' ),
@@ -72,6 +72,7 @@ class Alma_WC_Admin_Form {
 				$title_field,
 				array(
 					'payment_upon_trigger_enabling_info' => array(
+						// translators: %1$s: alma contact email.
 						'title' => '<p style="font-weight:normal;">' . sprintf( __( 'If you are interested in this feature, please get closer to your Alma contact or by sending an email to <a href="mailto:%1$s">%1$s</a>', 'alma-woocommerce-gateway' ), 'support@getalma.eu' ) . '</p>',
 						'type'  => 'title',
 					),
@@ -100,11 +101,10 @@ class Alma_WC_Admin_Form {
 					'options'     => Alma_WC_Payment_Upon_Trigger::get_display_texts(),
 				),
 				'payment_upon_trigger_event'        => array(
-					'type'        => 'select',
-					'title'       => __( 'Order status that triggers the first payment', 'alma-woocommerce-gateway' ),
-					'description' => __( '', 'alma-woocommerce-gateway' ),
-					'default'     => $default_settings['payment_upon_trigger_event'],
-					'options'     => Alma_WC_Payment_Upon_Trigger::get_order_statuses(),
+					'type'    => 'select',
+					'title'   => __( 'Order status that triggers the first payment', 'alma-woocommerce-gateway' ),
+					'default' => $default_settings['payment_upon_trigger_event'],
+					'options' => Alma_WC_Payment_Upon_Trigger::get_order_statuses(),
 				),
 			)
 		);
